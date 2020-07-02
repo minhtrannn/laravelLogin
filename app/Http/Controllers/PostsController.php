@@ -11,6 +11,12 @@ class PostsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    public function __construct()
+    {
+        $this->middleware(['auth','verified'], ['except' => ['index','show']]);
+    }
+
     public function index()
     {
         $posts = Post::orderBy('created_at','asc')->get();
@@ -35,14 +41,15 @@ class PostsController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request,[
-            'title' => 'required',
-            'body' => 'required'
+        $this->validate($request, [
+            'title' => 'required|regex:/^[a-zA-Z ]*$/',
+            'body' => 'required|regex:/^[a-zA-Z ]*$/'
         ]);
 
         $post = new Post();
         $post->title = $request->input('title');
         $post->body = $request->input('body');
+        $post->user_id = auth()->user()->id;
         $post->save();
 
         return redirect('/posts')->with('success', 'Post Created!!');
@@ -56,8 +63,15 @@ class PostsController extends Controller
      */
     public function show($id)
     {
-        $post = Post::find($id);
-        return view('posts.show')->with('post',$post);
+        if($id == null )
+        {
+            return view('posts.show')->with('error', 'Cannot find user');
+        }
+        else 
+        {
+            $post = Post::find($id);
+            return view('posts.show')->with('post', $post);
+        }
     }
 
     /**
@@ -68,8 +82,21 @@ class PostsController extends Controller
      */
     public function edit($id)
     {
-        $post = Post::find($id);
-        return view('posts.edit')->with('post',$post);
+        if($id == null )
+        {
+            return redirect('/posts')->with('error', "Can't find user");
+        }
+        else 
+        {
+            $post = Post::find($id);
+
+            //Check for correct user 
+            if(auth()->user()->id !== $post->user_id)
+            {
+                return redirect('/posts')->with('error', 'Unauthorized');
+            }
+            return view('posts.edit')->with('post', $post);
+        }
     }
 
     /**
@@ -82,14 +109,20 @@ class PostsController extends Controller
     public function update(Request $request, $id)
     {
         $this->validate($request,[
-            'title' => 'required',
+            'title' => 'required|regex:/^[a-zA-Z ]*$/',
             'body' => 'required'
         ]);
-
         $post = Post::find($id);
-        $post->title = $request->input('title');
-        $post->body = $request->input('body');
-        $post->save();
+        if($post == null)
+        {
+            return redirect('/posts')->with('success', 'Cannot update post!!');
+        }
+        else 
+        {
+            $post->title = $request->input('title');
+            $post->body = $request->input('body');
+            $post->save();
+        }
 
         return redirect('/posts')->with('success', 'Update Success!!');
     }
@@ -102,9 +135,16 @@ class PostsController extends Controller
      */
     public function destroy($id)
     {
-        $post = Post::find($id);
-        $post->delete();
-
-        return redirect('/posts')->with('success', 'Remove Success!!');
+        if($id == null )
+        {
+            return redirect('/posts')->with('error', "Can't remove post");
+        }
+        else 
+        {
+            $post = Post::find($id);
+            $post->delete();
+    
+            return redirect('/posts')->with('success', 'Remove Success!!');
+        }
     }
 }

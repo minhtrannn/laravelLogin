@@ -6,11 +6,14 @@
     <p>{{$post->created_at}}</p>
     <div>{{$post->body}}</div>
     <hr>
-
-    <a href="/posts/{{$post->id}}/edit" class = "btn btn-primary float-left">Edit</a>
-    {!! Form::open (['method' => 'DELETE', 'action' => ['PostsController@destroy',$post->id]])!!}
-        {{Form::submit('Delete',['class' => 'btn btn-danger float-right'])}}
-    {!! Form::close() !!}
+    @if (!Auth::guest())
+        @if (Auth::user()->id == $post->user_id)
+        <a href="/posts/{{$post->id}}/edit" class = "btn btn-primary float-left">Edit</a>
+        {!! Form::open (['method' => 'DELETE', 'action' => ['PostsController@destroy',$post->id]])!!}
+            {{Form::submit('Delete',['class' => 'btn btn-danger float-right'])}}
+        {!! Form::close() !!}
+        @endif
+    @endif
     {{-- <a href="/posts/{{$post->id}}" class="btn btn-danger float-right">Delete</a> --}}
 
 @endsection
